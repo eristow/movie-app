@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   Text,
   HStack,
@@ -8,18 +8,23 @@ import {
   Container,
   Flex,
   useColorModeValue,
+  useDisclosure,
 } from '@chakra-ui/react';
+
+import MovieDetails from './MovieDetails';
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY;
 
 const TEXT_SHADOW =
   '  0.05em 0 black, 0 0.05em black, -0.05em 0 black, 0 -0.05em black, -0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black;';
 
-const Movie = () => {
+function Movie() {
   const borderColor = useColorModeValue('gray.200', 'gray.900');
   const [service, setService] = useState('');
   const [movies, setMovies] = useState([]);
+  const [selectedMovie, setSelectedMovie] = useState({});
   const [response, setResponse] = useState({});
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const searchService = async () => {
     const data = await fetch(
@@ -32,48 +37,58 @@ const Movie = () => {
     setMovies(response.results);
   };
 
+  const openModal = movie => {
+    setSelectedMovie(movie);
+    onOpen();
+  };
+
   useEffect(() => {
     searchService();
   }, []);
 
   return (
-    <Container>
-      <HStack spacing={8} marginBottom={10}>
-        <Text>Search</Text>
-        <Input
-          size="md"
-          maxWidth="50%"
-          value={service}
-          onChange={e => setService(e.target.value)}
-        />
-        <Button onClick={searchService}>Submit</Button>
-      </HStack>
-      <SimpleGrid minChildWidth="120px" spacing={10}>
-        {movies &&
-          movies.length > 0 &&
-          movies.map(movie => (
-            <Flex
-              key={movie.id}
-              justifyContent="center"
-              alignItems="center"
-              borderRadius="5px"
-              borderWidth="1px"
-              borderColor={borderColor}
-              boxShadow="xl"
-              padding={2}
-              bgImage={`url(https://image.tmdb.org/t/p/w185${movie.poster_path})`}
-              bgPosition="center"
-              bgRepeat="no-repeat"
-              _hover={{ transform: 'scale(1.1)' }}
-            >
-              <Text textShadow={TEXT_SHADOW} color="white" align="center">
-                {movie.title}
-              </Text>
-            </Flex>
-          ))}
-      </SimpleGrid>
-    </Container>
+    <Fragment>
+      <Container>
+        <HStack spacing={8} marginBottom={10}>
+          <Text>Search</Text>
+          <Input
+            size="md"
+            maxWidth="50%"
+            value={service}
+            onChange={e => setService(e.target.value)}
+          />
+          <Button onClick={searchService}>Submit</Button>
+        </HStack>
+        <SimpleGrid minChildWidth="120px" spacing={10}>
+          {movies &&
+            movies.length > 0 &&
+            movies.map(movie => (
+              <Flex
+                key={movie.id}
+                justifyContent="center"
+                alignItems="center"
+                borderRadius="5px"
+                borderWidth="1px"
+                borderColor={borderColor}
+                boxShadow="xl"
+                padding={2}
+                bgImage={`url(https://image.tmdb.org/t/p/w185${movie.poster_path})`}
+                bgPosition="center"
+                bgRepeat="no-repeat"
+                cursor="pointer"
+                _hover={{ transform: 'scale(1.1)' }}
+                onClick={() => openModal(movie)}
+              >
+                <Text textShadow={TEXT_SHADOW} color="white" align="center">
+                  {movie.title}
+                </Text>
+              </Flex>
+            ))}
+        </SimpleGrid>
+      </Container>
+      <MovieDetails isOpen={isOpen} onClose={onClose} movie={selectedMovie} />
+    </Fragment>
   );
-};
+}
 
 export default Movie;
