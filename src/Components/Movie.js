@@ -9,11 +9,18 @@ import {
   Flex,
   useColorModeValue,
   useDisclosure,
+  Heading,
 } from '@chakra-ui/react';
 
 import MovieDetails from './MovieDetails';
 
 const API_KEY = process.env.REACT_APP_TMDB_API_KEY;
+
+const PAGE_VALUES = {
+  same: 0,
+  next: 1,
+  prev: 2,
+};
 
 const TEXT_SHADOW =
   '  0.05em 0 black, 0 0.05em black, -0.05em 0 black, 0 -0.05em black, -0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black, 0.05em 0.05em black;';
@@ -24,17 +31,30 @@ function Movie() {
   const [movies, setMovies] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState({});
   const [response, setResponse] = useState({});
+  const [page, setPage] = useState(1);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const searchService = async () => {
+  const searchService = async whichPage => {
+    let newPage = page;
+
+    if (whichPage !== PAGE_VALUES.same) {
+      if (whichPage === PAGE_VALUES.next) {
+        newPage = page + 1;
+        setPage(newPage);
+      } else if (whichPage === PAGE_VALUES.prev) {
+        newPage = page - 1;
+        setPage(newPage);
+      }
+    }
+
     const data = await fetch(
-      `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1`
+      `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=${newPage}`
     );
-    const response = await data.json();
-    console.log(response);
-    console.log(response.results);
-    setResponse(response);
-    setMovies(response.results);
+    const res = await data.json();
+    console.log(res);
+    console.log(res.results);
+    setResponse(res);
+    setMovies(res.results);
   };
 
   const openModal = movie => {
@@ -43,13 +63,18 @@ function Movie() {
   };
 
   useEffect(() => {
-    searchService();
+    searchService(PAGE_VALUES.same);
   }, []);
 
   return (
     <Fragment>
       <Container>
-        <HStack spacing={8} marginBottom={10}>
+        <HStack
+          align="center"
+          justifyContent="center"
+          spacing={8}
+          marginBottom={10}
+        >
           <Text>Search</Text>
           <Input
             size="md"
@@ -60,8 +85,7 @@ function Movie() {
           <Button onClick={searchService}>Submit</Button>
         </HStack>
         <SimpleGrid minChildWidth="120px" spacing={10}>
-          {movies &&
-            movies.length > 0 &&
+          {movies && movies.length > 0 ? (
             movies.map(movie => (
               <Flex
                 key={movie.id}
@@ -83,8 +107,29 @@ function Movie() {
                   {movie.title}
                 </Text>
               </Flex>
-            ))}
+            ))
+          ) : (
+            <Heading>Loading...</Heading>
+          )}
         </SimpleGrid>
+        <HStack
+          align="center"
+          justifyContent="center"
+          spacing={8}
+          marginTop={5}
+        >
+          {response.page !== 1 && (
+            <Button onClick={() => searchService(PAGE_VALUES.prev)}>
+              {'<'}
+            </Button>
+          )}
+          <Text>{response.page}</Text>
+          {response.page !== response.total_pages && (
+            <Button onClick={() => searchService(PAGE_VALUES.next)}>
+              {'>'}
+            </Button>
+          )}
+        </HStack>
       </Container>
       <MovieDetails isOpen={isOpen} onClose={onClose} movie={selectedMovie} />
     </Fragment>
